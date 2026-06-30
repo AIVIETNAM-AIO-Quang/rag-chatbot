@@ -59,7 +59,7 @@ def rag(question, collection, k=2):
         {"role": "user", "content": prompt}
     ],
     temperature=0.2
-)
+  )
     return resp.choices[0].message.content
 
 for k, v in {"collection": None, "chat_history": []}.items():
