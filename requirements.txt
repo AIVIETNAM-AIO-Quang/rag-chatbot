@@ -1,4 +1,4 @@
 streamlit
 chromadb
-ollama
+openai
 pypdf
