@@ -1,7 +1,6 @@
-
 import streamlit as st
 import chromadb
-import ollama
+from openai import OpenAI
 import pypdf
 
 st.set_page_config(
@@ -11,6 +10,11 @@ st.set_page_config(
 st.title("RAG Chatbot")
 st.write("A simple Chatbot for studying.")
 
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+EMBEDDING_MODEL = "text-embedding-3-small"
+CHAT_MODEL = "gpt-4o-mini"
+
 def chunk_text(text, size = 1000, overlap = 200):
   chunks, start = [], 0
   while start < len(text):
@@ -19,7 +23,11 @@ def chunk_text(text, size = 1000, overlap = 200):
   return chunks
 
 def embed(texts):
-  return ollama.embed(model = "bge-m3", input = texts)["embeddings"]
+    response = client.embeddings.create(
+        model=EMBEDDING_MODEL,
+        input=texts
+    )
+    return [item.embedding for item in response.data]
 
 def process_pdf(file):
   text = "".join(p.extract_text() or "" for p in pypdf.PdfReader(file).pages)
@@ -45,8 +53,14 @@ Answer:"""
 def rag(question, collection, k=2):
   context = "\n\n".join(retrieve(question, collection, k))
   prompt = PROMPT.format(context = context, question = question)
-  resp = ollama.chat(model="vicuna:7b-v1.5-q5_1", messages = [{"role": "user", "content": prompt}])
-  return resp["message"]["content"]
+  resp = client.chat.completions.create(
+    model=CHAT_MODEL,
+    messages=[
+        {"role": "user", "content": prompt}
+    ],
+    temperature=0.2
+)
+return resp.choices[0].message.content
 
 for k, v in {"collection": None, "chat_history": []}.items():
   st.session_state.setdefault(k, v)
