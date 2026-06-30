@@ -60,7 +60,7 @@ def rag(question, collection, k=2):
     ],
     temperature=0.2
 )
-return resp.choices[0].message.content
+    return resp.choices[0].message.content
 
 for k, v in {"collection": None, "chat_history": []}.items():
   st.session_state.setdefault(k, v)
