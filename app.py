@@ -1,7 +1,7 @@
 import streamlit as st
-import chromadb
-from openai import OpenAI
+from google import genai
 import pypdf
+import chromadb
 
 st.set_page_config(
     page_title="RAG Chatbot",
@@ -10,10 +10,10 @@ st.set_page_config(
 st.title("RAG Chatbot")
 st.write("A simple Chatbot for studying.")
 
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
-EMBEDDING_MODEL = "text-embedding-3-small"
-CHAT_MODEL = "gpt-4o-mini"
+EMBEDDING_MODEL = "gemini-embedding-001"
+CHAT_MODEL = "gemini-2.5-flash"
 
 def chunk_text(text, size = 1000, overlap = 200):
   chunks, start = [], 0
@@ -23,15 +23,17 @@ def chunk_text(text, size = 1000, overlap = 200):
   return chunks
 
 def embed(texts):
-    response = client.embeddings.create(
+    result = client.models.embed_content(
         model=EMBEDDING_MODEL,
-        input=texts
+        contents=texts
     )
-    return [item.embedding for item in response.data]
+
+    return [item.values for item in result.embeddings]
 
 def process_pdf(file):
   text = "".join(p.extract_text() or "" for p in pypdf.PdfReader(file).pages)
   chunks = chunk_text(text)
+  chunks = chunks[:30]
   col = chromadb.Client().get_or_create_collection("rag")
   col.add(ids=[str(i) for i in range(len(chunks))], documents = chunks, embeddings = embed(chunks))
 
@@ -54,16 +56,13 @@ def rag(question, collection, k=2):
     context = "\n\n".join(retrieve(question, collection, k))
     prompt = PROMPT.format(context=context, question=question)
 
-    resp = client.chat.completions.create(
+    response = client.models.generate_content(
         model=CHAT_MODEL,
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.2
+        contents=prompt
     )
 
-    return resp.choices[0].message.content
-
+    return response.text
+    
 for k, v in {"collection": None, "chat_history": []}.items():
   st.session_state.setdefault(k, v)
 
