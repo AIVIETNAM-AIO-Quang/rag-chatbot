@@ -51,15 +51,17 @@ Question: {question}
 Answer:"""
 
 def rag(question, collection, k=2):
-  context = "\n\n".join(retrieve(question, collection, k))
-  prompt = PROMPT.format(context = context, question = question)
-  resp = client.chat.completions.create(
-    model=CHAT_MODEL,
-    messages=[
-        {"role": "user", "content": prompt}
-    ],
-    temperature=0.2
-  )
+    context = "\n\n".join(retrieve(question, collection, k))
+    prompt = PROMPT.format(context=context, question=question)
+
+    resp = client.chat.completions.create(
+        model=CHAT_MODEL,
+        messages=[
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.2
+    )
+
     return resp.choices[0].message.content
 
 for k, v in {"collection": None, "chat_history": []}.items():
